@@ -27,9 +27,9 @@ public class GLMExecutor implements ResultHandler, Executor {
 
     private final EventSource.Factory factory;
 
-    private final IOpenAiApi openAiApi;
+    private IOpenAiApi openAiApi;
 
-    private final OkHttpClient okHttpClient;
+    private OkHttpClient okHttpClient;
 
     public GLMExecutor(Configuration configuration) {
         this.configuration = configuration;
@@ -45,7 +45,8 @@ public class GLMExecutor implements ResultHandler, Executor {
                 .post(RequestBody.create(MediaType.parse(Configuration.JSON_CONTENT_TYPE), chatCompletionRequest.toString()))
                 .build();
 
-        return factory.newEventSource(request, chatCompletionRequest.getIsCompatible() ? eventSourceListener(eventSourceListener) : eventSourceListener);
+        return factory.newEventSource(request, chatCompletionRequest.getIsCompatible() ?
+                eventSourceListener(eventSourceListener) : eventSourceListener);
     }
 
     @Override
@@ -90,18 +91,20 @@ public class GLMExecutor implements ResultHandler, Executor {
 
     @Override
     public ChatCompletionSyncResponse completionsSync(ChatCompletionRequest chatCompletionRequest) throws Exception {
-
         chatCompletionRequest.setStream(false);
 
         Request request = new Request.Builder()
                 .url(configuration.getApiHost().concat(IOpenAiApi.v4))
                 .post(RequestBody.create(MediaType.parse(Configuration.JSON_CONTENT_TYPE), chatCompletionRequest.toString()))
                 .build();
+
         OkHttpClient okHttpClient = configuration.getOkHttpClient();
         Response response = okHttpClient.newCall(request).execute();
+
         if (!response.isSuccessful()) {
             throw new RuntimeException("Request failed");
         }
+        assert response.body() != null;
         return JSON.parseObject(response.body().string(), ChatCompletionSyncResponse.class);
     }
 
